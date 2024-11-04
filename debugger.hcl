@@ -14,7 +14,13 @@ job "debug-service" {
       config {
         image      = "appropriate/curl"
         entrypoint = ["/bin/sh", "-c"]
-        args       = ["while true; do sleep 1000; done"]
+        args       = [
+          "apk add --no-cache curl redis postgresql-client && \
+           curl -O https://dl.min.io/client/mc/release/linux-amd64/mc && \
+           chmod +x mc && \
+           mv mc /usr/local/bin/ && \
+           while true; do sleep 1000; done"
+        ]
       }
 
       template {
