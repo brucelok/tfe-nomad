@@ -34,7 +34,7 @@ TFE_DATABASE_HOST="{{ .Address }}:{{ .Port }}"
 {{ end }}
 
 {{ range nomadService "minio-svc" }}
-TFE_OBJECT_STORAGE_S3_ENDPOINT="{{ .Address }}:{{ .Port }}"
+TFE_OBJECT_STORAGE_S3_ENDPOINT="http://{{ .Address }}:{{ .Port }}"
 {{ end }}
 EOF
         env         = true
