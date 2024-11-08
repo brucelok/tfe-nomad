@@ -1,4 +1,3 @@
-# example TFE JobSpec
 variable "tfe_image" {
   description = "The TFE image to use"
   type        = string
@@ -8,13 +7,12 @@ variable "tfe_image" {
 variable "tfe_image_username" {
   description = "Username for the registry to download TFE image"
   type        = string
-  default     = "terraform"
 }
 
 variable "tfe_image_password" {
   description = "Password for the registry to download TFE image"
   type        = string
-}  
+}
 
 variable "namespace" {
   description = "The Nomad namespace to run the job"
@@ -29,15 +27,15 @@ job "tfe-job" {
 
   group "tfe-group" {
     count = 1
-      
+
     reschedule {
-      attempts = 0
+      attempts  = 0
       unlimited = false
     }
 
     restart {
       attempts = 9
-      delay    = "60s"
+      delay    = "30s"
       interval = "10m"
       mode     = "fail"
     }
@@ -51,13 +49,14 @@ job "tfe-job" {
     }
 
     network {
+      mode = "bridge"
+
       port "tfe" {
-        # static port is not required if load balancer is used.
+        # Static port is not required if a load balancer is used.
         static = 443
         to     = 8443
       }
       port "tfehttp" {
-        # static port is not required if load balancer is used.
         static = 80
         to     = 8080
       }
@@ -69,24 +68,23 @@ job "tfe-job" {
     service {
       name     = "tfe-svc"
       port     = "tfe"
-      provider = "consul"
-      check {
-        name     = "tfe_probe"
-        type     = "http"
-        protocol = "https"
-        port     = "tfe"
-        path     = "/_health_check"
-        interval = "6s"
-        timeout  = "3s"
-        method   = "GET"
-      }
+      provider = "nomad"
+      #check {
+      #  name     = "tfe_probe"
+      #  type     = "http"
+      #  protocol = "https"
+      #  port     = "tfe"
+      #  path     = "/_health_check"
+      #  interval = "15s"
+      #  timeout  = "15s"
+      #  method   = "GET"
+      #}
     }
 
     task "tfe-task" {
       driver = "docker"
 
       identity {
-        # Expose Workload Identity in NOMAD_TOKEN env var
         env = true
       }
 
@@ -135,21 +133,21 @@ job "tfe-job" {
         change_mode = "restart"
       }
 
-      # retrieve varaible from external service
+      # Retrieve variables from external services
       template {
-        data        = <<EOF
-              {{ range nomadService "redis-svc" }}
-              TFE_REDIS_HOST     = "{{.Address}}:{{.Port}}"
-              {{ end }}
+        data = <<EOF
+{{ range nomadService "redis-svc" }}
+TFE_REDIS_HOST="{{ .Address }}:{{ .Port }}"
+{{ end }}
 
-              {{ range nomadService "postgres-svc" }}
-              TFE_DATABASE_HOST = "{{.Address}}:{{.Port}}"
-              {{ end }}
+{{ range nomadService "postgres-svc" }}
+TFE_DATABASE_HOST="{{ .Address }}:{{ .Port }}"
+{{ end }}
 
-              {{ range nomadService "minio-svc" }}
-              TFE_OBJECT_STORAGE_S3_ENDPOINT = "{{.Address}}:{{.Port}}"
-              {{ end }}
-              EOF
+{{ range nomadService "minio-svc" }}
+TFE_OBJECT_STORAGE_S3_ENDPOINT="http://{{ .Address }}:{{ .Port }}"
+{{ end }}
+EOF
         env         = true
         destination = "secrets/ext.env"
       }
@@ -172,33 +170,26 @@ job "tfe-job" {
       }
 
       env {
-        # TFE_DATABASE_HOST       = "from template block"
+        # TFE_DATABASE_HOST       = "from template"
         TFE_DATABASE_USER       = "postgres"
-        TFE_DATABASE_PASSWORD   = "xxxxxxxx"
+        TFE_DATABASE_PASSWORD   = "PASSWORD"
         TFE_DATABASE_NAME       = "tfedb"
         TFE_DATABASE_PARAMETERS = "sslmode=disable"
-
         TFE_OBJECT_STORAGE_TYPE                 = "s3"
-        # TFE_OBJECT_STORAGE_S3_ENDPOINT          = "from template block"
+        # TFE_OBJECT_STORAGE_S3_ENDPOINT          = "from template"
         TFE_OBJECT_STORAGE_S3_ACCESS_KEY_ID     = "minio"
-        TFE_OBJECT_STORAGE_S3_SECRET_ACCESS_KEY = "xxxxxxxx"
+        TFE_OBJECT_STORAGE_S3_SECRET_ACCESS_KEY = "PASSWORD"
         TFE_OBJECT_STORAGE_S3_REGION            = "ap-southeast-2"
         TFE_OBJECT_STORAGE_S3_BUCKET            = "tfebucket"
-
-        #TFE_REDIS_HOST     = "from template block"
+        #TFE_REDIS_HOST     = "from template"
         TFE_REDIS_USE_TLS  = "false"
         TFE_REDIS_USE_AUTH = "false"
-
         TFE_RUN_PIPELINE_DRIVER = "nomad"
         TFE_VAULT_DISABLE_MLOCK = "true"
-        TFE_ENCRYPTION_PASSWORD = "xxxxxxxxxx"
-
-        # If you are using the default internal vault, this should be the private routable IP address of the node itself.
+        TFE_ENCRYPTION_PASSWORD = "PASSWORD"
         TFE_VAULT_CLUSTER_ADDRESS = "http://${NOMAD_HOST_ADDR_vault}"
-
         TFE_HTTP_PORT = "8080"
         TFE_HTTPS_PORT = "8443"
-
         TFE_TLS_CERT_FILE      = "/etc/ssl/private/terraform-enterprise/cert.pem"
         TFE_TLS_KEY_FILE       = "/etc/ssl/private/terraform-enterprise/key.pem"
         TFE_TLS_CA_BUNDLE_FILE = "/etc/ssl/private/terraform-enterprise/bundle.pem"
