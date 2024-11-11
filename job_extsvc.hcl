@@ -10,6 +10,12 @@ job "ext-svc" {
       }
     }
 
+    volume "redis_data" {
+      type      = "host"
+      source    = "redis_data"
+      read_only = false
+    }
+
     service {
       name     = "redis-svc"
       port     = "redis"
@@ -23,6 +29,12 @@ job "ext-svc" {
         image = "redis:7"
         ports = ["redis"]
       }
+
+      volume_mount {
+        volume      = "redis_data"
+        destination = "/data"
+        read_only   = false
+      }
     }
   }
 
@@ -33,6 +45,12 @@ job "ext-svc" {
       port "postgres" {
         to = 5432
       }
+    }
+
+    volume "postgres_data" {
+      type      = "host"
+      source    = "postgres_data"
+      read_only = false
     }
 
     service {
@@ -48,10 +66,17 @@ job "ext-svc" {
         image = "postgres:16"
         ports = ["postgres"]
       }
+
       env {
         POSTGRES_USER     = "postgres"
         POSTGRES_PASSWORD = "postgres"
         POSTGRES_DB       = "tfedb"
+      }
+
+      volume_mount {
+        volume      = "postgres_data"
+        destination = "/var/lib/postgresql/data"
+        read_only   = false
       }
     }
   }
@@ -65,11 +90,16 @@ job "ext-svc" {
       }
     }
 
+    volume "minio_data" {
+      type      = "host"
+      source    = "minio_data"
+      read_only = false
+    }
+
     service {
       name     = "minio-svc"
       port     = "minio"
       provider = "nomad"
-      tags     = ["minio", "s3"]
     }
 
     task "minio-task" {
@@ -84,6 +114,12 @@ job "ext-svc" {
       env {
         MINIO_ROOT_USER     = "minio"
         MINIO_ROOT_PASSWORD = "minio123"
+      }
+
+      volume_mount {
+        volume      = "minio_data"
+        destination = "/data"
+        read_only   = false
       }
     }
   }
