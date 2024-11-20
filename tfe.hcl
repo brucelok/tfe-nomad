@@ -190,6 +190,8 @@ EOF
         TFE_VAULT_CLUSTER_ADDRESS = "http://${NOMAD_HOST_ADDR_vault}"
         TFE_HTTP_PORT = "8080"
         TFE_HTTPS_PORT = "8443"
+        TFE_RUN_PIPELINE_NOMAD_NAMESPACE = "default"
+        TFE_RUN_PIPELINE_NOMAD_AGENT_JOB_ID = "remote-exe-agent"
         TFE_TLS_CERT_FILE      = "/etc/ssl/private/terraform-enterprise/cert.pem"
         TFE_TLS_KEY_FILE       = "/etc/ssl/private/terraform-enterprise/key.pem"
         TFE_TLS_CA_BUNDLE_FILE = "/etc/ssl/private/terraform-enterprise/bundle.pem"
